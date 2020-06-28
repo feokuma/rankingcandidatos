@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  rankingcandidatos.api:
+    image: ${DOCKER_REGISTRY-}rankingcandidatosapi
+    build:
+      context: .
+      dockerfile: rankingcandidatos.API/Dockerfile
