@@ -1,0 +1,23 @@
+services:
+  rankingcandidatos.api:
+    build:
+      context: C:\Projetos\pessoal\rankingcandidatos
+      dockerfile: rankingcandidatos.API/Dockerfile
+    depends_on:
+    - rankingcandidatos.db
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: https://+:443;http://+:80
+    image: rankingcandidatosapi
+    ports:
+    - target: 80
+    - target: 443
+    volumes:
+    - C:\Users\vitor.sobral\AppData\Roaming\ASP.NET\Https:/root/.aspnet/https:ro
+    - C:\Users\vitor.sobral\AppData\Roaming\Microsoft\UserSecrets:/root/.microsoft/usersecrets:ro
+  rankingcandidatos.db:
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: rankingcandidatos
+    image: mcr.microsoft.com/mssql/server
+version: '3.4'

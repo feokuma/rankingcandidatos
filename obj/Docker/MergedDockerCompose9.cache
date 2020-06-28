@@ -1,0 +1,44 @@
+services:
+  rankingcandidatos.api:
+    build:
+      context: C:\Projetos\pessoal\rankingcandidatos
+      dockerfile: rankingcandidatos.API/Dockerfile
+      labels:
+        com.microsoft.created-by: visual-studio
+        com.microsoft.visual-studio.project-name: rankingcandidatos.API
+      target: base
+    container_name: rankingcandidatos.API
+    depends_on:
+    - rankingcandidatos.db
+    entrypoint: tail -f /dev/null
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: https://+:443;http://+:80
+      DOTNET_USE_POLLING_FILE_WATCHER: '1'
+      NUGET_FALLBACK_PACKAGES: /root/.nuget/fallbackpackages
+    image: rankingcandidatosapi:dev
+    labels:
+      com.microsoft.visualstudio.debuggee.arguments: ' --additionalProbingPath /root/.nuget/packages
+        --additionalProbingPath /root/.nuget/fallbackpackages  "bin/Debug/netcoreapp3.1/rankingcandidatos.API.dll"'
+      com.microsoft.visualstudio.debuggee.killprogram: /bin/sh -c "if PID=$$(pidof
+        dotnet); then kill $$PID; fi"
+      com.microsoft.visualstudio.debuggee.program: dotnet
+      com.microsoft.visualstudio.debuggee.workingdirectory: /app
+    ports:
+    - target: 80
+    - target: 443
+    tty: true
+    volumes:
+    - C:\Projetos\pessoal\rankingcandidatos\rankingcandidatos.API:/app:rw
+    - C:\Users\vitor.sobral\vsdbg\vs2017u5:/remote_debugger:rw
+    - C:\Users\vitor.sobral\AppData\Roaming\ASP.NET\Https:/root/.aspnet/https:ro
+    - C:\Users\vitor.sobral\AppData\Roaming\Microsoft\UserSecrets:/root/.microsoft/usersecrets:ro
+    - C:\Program Files\dotnet\sdk\NuGetFallbackFolder:/root/.nuget/fallbackpackages:ro
+    - C:\Users\vitor.sobral\.nuget\packages:/root/.nuget/packages:ro
+    - C:\Projetos\pessoal\rankingcandidatos:/src:rw
+  rankingcandidatos.db:
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: rankingcandidatos
+    image: mcr.microsoft.com/mssql/server
+version: '3.4'
