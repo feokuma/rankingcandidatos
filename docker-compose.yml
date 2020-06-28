@@ -1,0 +1,16 @@
+version: '3.4'
+
+services:
+  rankingcandidatos.api:
+    image: ${DOCKER_REGISTRY-}rankingcandidatosapi
+    build:
+      context: .
+      dockerfile: rankingcandidatos.API/Dockerfile
+    depends_on:
+      - rankingcandidatos.db
+
+  rankingcandidatos.db:
+    image: "mcr.microsoft.com/mssql/server"
+    environment:
+      SA_PASSWORD: "rankingcandidatos"
+      ACCEPT_EULA: "Y"
