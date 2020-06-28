@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using rankingcandidatos.API.Infra.Dados;
 
 namespace rankingcandidatos.API.Controllers
 {
@@ -17,10 +17,12 @@ namespace rankingcandidatos.API.Controllers
         };
 
         private readonly ILogger<WeatherForecastController> _logger;
+        private readonly RankingCandidatosContext _context;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
+        public WeatherForecastController(ILogger<WeatherForecastController> logger, RankingCandidatosContext context)
         {
             _logger = logger;
+            _context = context;
         }
 
         [HttpGet]
