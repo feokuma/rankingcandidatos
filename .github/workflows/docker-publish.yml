@@ -21,6 +21,8 @@ jobs:
   login:
     runs-on: ubuntu-latest
     steps:
+      - name: docker logout
+        run: docker logout
       - name: docker login
         run: docker login --username rankingcandidatos --password rc789963* 
 
@@ -45,5 +47,4 @@ jobs:
 
       - name: Push image
         run: |
-          $ docker tag first-image rankingcandidatos/rankingcandidatos/api:first-image
-          $ docker push rankingcandidatos/rankingcandidatos/api:first-image
+          $ docker push rankingcandidatos/rankingcandidatos/api:latest
