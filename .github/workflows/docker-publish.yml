@@ -45,8 +45,5 @@ jobs:
 
       - name: Push image
         run: |
-          echo IMAGE_ID=$IMAGE_ID
-          echo VERSION=$VERSION
-
-          # docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+          docker tag rankingcandidatos/api:latest
           docker push rankingcandidatos/api:latest
