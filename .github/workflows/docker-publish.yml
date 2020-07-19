@@ -18,11 +18,18 @@ env:
   IMAGE_NAME: image
 
 jobs:
-  # Run tests.
+  login:
+    runs-on: ubuntu-latest
+    steps:
+      - name: docker login
+        run: docker login --username rankingcandidatos --password rc789963* 
+
+# Run tests.
 
   # Push image to GitHub Packages.
   # See also https://docs.docker.com/docker-hub/builds/
   push:
+    needs: login
 
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
