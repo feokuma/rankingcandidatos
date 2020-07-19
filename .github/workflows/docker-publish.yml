@@ -47,4 +47,4 @@ jobs:
 
       - name: Push image
         run: |
-          docker push rankingcandidatos/api:latest
+          docker push rankingcandidatos/api
