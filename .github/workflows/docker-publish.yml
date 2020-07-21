@@ -18,33 +18,16 @@ env:
   IMAGE_NAME: image
 
 jobs:
-  login:
+  push_to_registry:
+    name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     steps:
-      - name: docker logout
-        run: docker logout
-      - name: docker login
-        run: docker login --username rankingcandidatos --password rc789963* 
-
-# Run tests.
-
-  # Push image to GitHub Packages.
-  # See also https://docs.docker.com/docker-hub/builds/
-  push:
-    needs: login
-
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Build image
-        run: docker build . --file ./rankingcandidatos.API/Dockerfile --tag rankingcandidatos/api
-
-      - name: Log into registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
-
-      - name: Push image
-        run: |
-          docker push rankingcandidatos/api
+      - name: Check out the repo
+        uses: actions/checkout@v2
+      - name: Push to Docker Hub
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: rankingcandidatos/api
+          tag_with_ref: true
