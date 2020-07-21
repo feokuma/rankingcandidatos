@@ -1,28 +1,23 @@
-name: Docker
-
+name: Publicar Imagem Docker
 on:
   push:
     # Publish `master` as Docker `latest` image.
     branches:
       - master
 
-    # Publish `v1.2.3` tags as releases.
-    tags:
-      - v*
-
 jobs:
-  Publish Docker Image:
+  steps:
     runs-on: ubuntu-latest 
     steps:
-      - name: Checkout
+      - name: Checkout do repositório
         uses: actions/checkout@v2
         with:
           ref: master
-      - name: Build Image
+      - name: docker build
         run: docker build . --file ./rankingcandidatos.API/Dockerfile -t rankingcandidatos/api:main
-      - name: Tag Image
+      - name: docker tag
         run: docker tag rankingcandidatos/api:main rankingcandidatos/api:latest
-      - name: Docker login
+      - name: docker login
         run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }} 
-      - name: Push Image
+      - name: docker push
         run: docker push rankingcandidatos/api:latest
