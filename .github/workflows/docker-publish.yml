@@ -27,7 +27,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          registry: rankingcandidatos/api
-          repository: rankingcandidatos/api
-          dockerfile: ./rankingcandidatos.API/Dockerfile
+          registry: rankingcandidatos
+          repository: api
+          dockerfile: rankingcandidatos.API/Dockerfile
           push: true
