@@ -6,11 +6,7 @@ services:
     build:
       context: .
       dockerfile: rankingcandidatos.API/Dockerfile
-    depends_on:
-      - rankingcandidatos.db
+    ports:
+        - "80:80" 
+        - "443:443"
 
-  rankingcandidatos.db:
-    image: "mcr.microsoft.com/mssql/server"
-    environment:
-      SA_PASSWORD: "rankingcandidatos"
-      ACCEPT_EULA: "Y"

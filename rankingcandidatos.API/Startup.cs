@@ -21,7 +21,9 @@ namespace rankingcandidatos.API
         public void ConfigureServices(IServiceCollection services)
         {
             var optionsBuilder = new DbContextOptionsBuilder<RankingCandidatosContext>();
-            optionsBuilder.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"), providerOptions => providerOptions.CommandTimeout(60));
+            optionsBuilder.UseSqlServer(
+                Configuration.GetConnectionString("DefaultConnection"), 
+                providerOptions => providerOptions.CommandTimeout(60));
 
             services.AddScoped(_ => new RankingCandidatosContext(optionsBuilder.Options));
 
