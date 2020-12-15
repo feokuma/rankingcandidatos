@@ -14,7 +14,7 @@ jobs:
             with:
                 ref: master
           - name: docker build
-            run: docker build . --file ./rankingcandidatos.API/Dockerfile -t rankingcandidatos/api:main
+            run: docker build . --file ./src/rankingcandidatos.API/Dockerfile -t rankingcandidatos/api:main
           - name: docker tag
             run: docker tag rankingcandidatos/api:main rankingcandidatos/api:latest
           - name: docker login
