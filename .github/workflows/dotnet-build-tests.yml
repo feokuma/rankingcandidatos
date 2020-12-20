@@ -28,10 +28,5 @@ jobs:
       run: dotnet test --no-restore --verbosity normal
 
     - name: Publish
-      run: dotnet publish 
+      run: dotnet publish --configuration $config 
 
-    - name: Upload API Build Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: rankingcandidatos.API
-        path: /home/runner/work/rankingcandidatos/rankingcandidatos/src/rankingcandidatos.API/bin/Release/net5.0/publish/
