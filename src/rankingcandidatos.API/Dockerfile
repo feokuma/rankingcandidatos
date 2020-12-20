@@ -9,7 +9,7 @@ FROM mcr.microsoft.com/dotnet/sdk:5.0-buster-slim AS build
 WORKDIR /src
 COPY ["src/rankingcandidatos.API/rankingcandidatos.API.csproj", "rankingcandidatos.API/"]
 RUN dotnet restore "rankingcandidatos.API/rankingcandidatos.API.csproj"
-COPY . .
+COPY ./src .
 WORKDIR "/src/rankingcandidatos.API"
 RUN dotnet build "rankingcandidatos.API.csproj" -c Release -o /app/build
 
