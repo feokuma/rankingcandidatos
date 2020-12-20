@@ -1,4 +1,4 @@
-name: Publicar Imagem Docker
+name: Publish Dockerhub
 on:
   push:
     # Publish `master` as Docker `latest` image.
@@ -9,7 +9,7 @@ jobs:
     build-api:
         runs-on: ubuntu-latest 
         steps:
-          - name: Checkout do repositório
+          - name: Checkout Repository
             uses: actions/checkout@v2
             with:
                 ref: main
