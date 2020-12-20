@@ -16,7 +16,7 @@ jobs:
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 5.0.101    
+        dotnet-version: 5.0.101   
 
     - name: Install dependencies 
       run: dotnet restore
@@ -28,10 +28,5 @@ jobs:
       run: dotnet test --no-restore --verbosity normal
 
     - name: Publish
-      run: dotnet publish 
+      run: dotnet publish --configuration $config 
 
-    - name: Upload API Build Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: rankingcandidatos.API
-        path: /home/runner/work/rankingcandidatos/rankingcandidatos/src/rankingcandidatos.API/bin/Debug/net5.0/publish/
