@@ -18,7 +18,7 @@
 
 ## Pré-requisitos para desenvolvimento
 + .net 5
-+ Docker
++ Docker Desktop
 
 ## Antes de executar a aplicação localmente
 Para executar a aplicação localmente é necessário e executar o docker-compose.yml, localizado na raiz do projeto, para criar o container do mongodb e mongo-express
