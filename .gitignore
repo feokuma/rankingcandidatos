@@ -1,0 +1,17 @@
+# Node
+node_modules/
+.npm/
+
+# Next.js
+.next/
+out/
+
+# .NET
+**/bin/
+**/obj/
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
