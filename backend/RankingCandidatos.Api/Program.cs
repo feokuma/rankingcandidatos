@@ -1,8 +1,13 @@
-using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
+using RankingCandidatos.Api.Contracts;
+using RankingCandidatos.Api.Domain;
+using RankingCandidatos.Api.Infra.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("frontend", policy =>
@@ -15,6 +20,12 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.EnsureCreatedAsync();
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -22,22 +33,26 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("frontend");
 
-var candidatos = new ConcurrentDictionary<Guid, Candidato>();
-
 var api = app.MapGroup("/api/candidatos");
 
-api.MapGet("/ranking", () =>
+api.MapGet("/ranking", async (AppDbContext db) =>
 {
-    return candidatos.Values
+    var candidatos = await db.Candidatos
+        .AsNoTracking()
         .OrderByDescending(c => c.Pontuacao)
         .ThenBy(c => c.Nome)
-        .Select(CandidatoResponse.From)
-        .ToArray();
+        .ToListAsync();
+
+    return candidatos.Select(CandidatoResponse.From);
 });
 
-api.MapGet("/{id:guid}", (Guid id) =>
+api.MapGet("/{id:guid}", async (Guid id, AppDbContext db) =>
 {
-    if (!candidatos.TryGetValue(id, out var candidato))
+    var candidato = await db.Candidatos
+        .AsNoTracking()
+        .FirstOrDefaultAsync(c => c.Id == id);
+
+    if (candidato is null)
     {
         return Results.NotFound();
     }
@@ -45,7 +60,7 @@ api.MapGet("/{id:guid}", (Guid id) =>
     return Results.Ok(CandidatoResponse.From(candidato));
 });
 
-api.MapPost("", (CriarCandidatoRequest request) =>
+api.MapPost("", async (CriarCandidatoRequest request, AppDbContext db) =>
 {
     if (string.IsNullOrWhiteSpace(request.Nome) || string.IsNullOrWhiteSpace(request.Cidade) || string.IsNullOrWhiteSpace(request.Candidatura))
     {
@@ -61,14 +76,16 @@ api.MapPost("", (CriarCandidatoRequest request) =>
         Partido = request.Partido?.Trim() ?? string.Empty
     };
 
-    candidatos[candidato.Id] = candidato;
+    db.Candidatos.Add(candidato);
+    await db.SaveChangesAsync();
 
     return Results.Created($"/api/candidatos/{candidato.Id}", CandidatoResponse.From(candidato));
 });
 
-api.MapPost("/{id:guid}/avaliacoes", (Guid id, RegistrarAvaliacaoRequest request) =>
+api.MapPost("/{id:guid}/avaliacoes", async (Guid id, RegistrarAvaliacaoRequest request, AppDbContext db) =>
 {
-    if (!candidatos.TryGetValue(id, out var candidato))
+    var candidato = await db.Candidatos.FirstOrDefaultAsync(c => c.Id == id);
+    if (candidato is null)
     {
         return Results.NotFound();
     }
@@ -86,46 +103,9 @@ api.MapPost("/{id:guid}/avaliacoes", (Guid id, RegistrarAvaliacaoRequest request
             return Results.BadRequest(new { erro = "Tipo de avaliação inválido. Use 'positiva' ou 'negativa'." });
     }
 
+    await db.SaveChangesAsync();
+
     return Results.Ok(CandidatoResponse.From(candidato));
 });
 
 app.Run();
-
-sealed class Candidato
-{
-    public Guid Id { get; init; }
-    public string Nome { get; init; } = string.Empty;
-    public string Cidade { get; init; } = string.Empty;
-    public string Partido { get; init; } = string.Empty;
-    public string Candidatura { get; init; } = string.Empty;
-    public int PontosPositivos { get; set; }
-    public int PontosNegativos { get; set; }
-    public int Pontuacao => PontosPositivos - PontosNegativos;
-}
-
-record CriarCandidatoRequest(string Nome, string Cidade, string Candidatura, string? Partido);
-record RegistrarAvaliacaoRequest(string Tipo);
-
-record CandidatoResponse(
-    Guid Id,
-    string Nome,
-    string Cidade,
-    string Partido,
-    string Candidatura,
-    int PontosPositivos,
-    int PontosNegativos,
-    int Pontuacao)
-{
-    public static CandidatoResponse From(Candidato candidato)
-    {
-        return new CandidatoResponse(
-            candidato.Id,
-            candidato.Nome,
-            candidato.Cidade,
-            candidato.Partido,
-            candidato.Candidatura,
-            candidato.PontosPositivos,
-            candidato.PontosNegativos,
-            candidato.Pontuacao);
-    }
-}
