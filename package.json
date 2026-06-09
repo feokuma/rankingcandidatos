@@ -1,0 +1,11 @@
+{
+  "name": "rankingcandidatos-devtools",
+  "private": true,
+  "scripts": {
+    "dev:up": "pwsh -NoProfile -File ./scripts/dev-up.ps1",
+    "dev:up:apps": "pwsh -NoProfile -File ./scripts/dev-up.ps1 -StartApps",
+    "dev:down": "pwsh -NoProfile -File ./scripts/dev-down.ps1",
+    "dev:reset": "pwsh -NoProfile -File ./scripts/dev-reset.ps1",
+    "supabase:status": "npx --yes supabase status"
+  }
+}

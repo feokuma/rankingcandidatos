@@ -1,0 +1,2 @@
+-- Seed inicial para desenvolvimento local.
+-- Adicione inserts aqui quando precisar de dados base.
