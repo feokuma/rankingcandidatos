@@ -1,7 +1,6 @@
 ---
 name: gitmoji-commits
 description: "Use quando o usuário pedir para criar commits, padronizar mensagens de commit, ou aplicar padrão gitmoji. Gera mensagens no formato gitmoji + tipo + escopo opcional + descrição curta em português, e orienta sobre separação de commits por objetivo."
-user-invocable: true
 ---
 
 # Gitmoji Commits
