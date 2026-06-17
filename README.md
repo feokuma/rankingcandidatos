@@ -8,7 +8,9 @@ Para cidadãos, cujo objetivo para as próximas eleições é avaliar melhor os 
 
 - Backend: ASP.NET Core (.NET 10) + EF Core + PostgreSQL
 - Frontend: Next.js (App Router + TypeScript)
-- Infra local: Supabase em containers (via Supabase CLI)
+- Infra local: PostgreSQL em container Docker
+- Autenticação: fake/dev por enquanto
+- Automação: Cake via ferramenta local do .NET
 
 ## Pré-requisitos
 
@@ -19,19 +21,31 @@ Para cidadãos, cujo objetivo para as próximas eleições é avaliar melhor os 
 
 ## Setup inicial
 
-1. Na raiz do projeto, suba a infraestrutura local do Supabase:
+1. Na raiz do projeto, restaure as ferramentas locais do .NET:
 
 ```bash
-npm run dev:up
+dotnet tool restore
 ```
 
-2. Em um terminal separado, suba a API:
+2. Entre no diretório do backend:
+
+```bash
+cd backend
+```
+
+3. Suba a infraestrutura local:
+
+```bash
+dotnet cake --target=DevUp
+```
+
+4. Em um terminal separado, a partir da raiz do projeto, suba a API:
 
 ```bash
 dotnet run --project backend/RankingCandidatos.Api
 ```
 
-3. Em outro terminal, suba o frontend:
+5. Em outro terminal, a partir da raiz do projeto, suba o frontend:
 
 ```bash
 cd frontend/rankingcandidatos-web
@@ -39,21 +53,25 @@ npm install
 npm run dev
 ```
 
-4. Acesse a aplicação:
+6. Acesse a aplicação:
 
 - Frontend: http://localhost:3000
 - API: http://localhost:5000
-- Supabase Studio: http://127.0.0.1:54323
 
 ## Comandos de automação local
 
-Comandos disponíveis no `package.json` da raiz:
+Comandos disponíveis em `backend/build.cake`:
 
-- `npm run dev:up` -> sobe Supabase local
-- `npm run dev:up:apps` -> sobe Supabase e abre API + frontend em terminais separados
-- `npm run dev:down` -> para Supabase local
-- `npm run dev:reset` -> reseta banco local do Supabase (migrations + seed)
-- `npm run supabase:status` -> mostra status e chaves locais
+- `dotnet cake --target=DevUp` -> sobe o container PostgreSQL local
+- `dotnet cake --target=DevUpApps` -> sobe PostgreSQL e inicia API + frontend em processos separados
+- `dotnet cake --target=DevDown` -> remove o container PostgreSQL local mantendo o volume de dados
+- `dotnet cake --target=DevReset` -> remove container e volume, recriando o banco local limpo
+- `dotnet cake --target=DbLogs` -> mostra logs do container PostgreSQL
+- `dotnet cake --target=RunApi` -> roda a API
+- `dotnet cake --target=RunFrontend` -> instala dependências e roda o frontend
+- `dotnet cake --target=Build` -> compila a API e o frontend
+
+Execute esses comandos a partir do diretório `backend`.
 
 ## Banco de dados e EF Core
 
@@ -63,7 +81,7 @@ Comandos disponíveis no `package.json` da raiz:
 - String padrão local:
 
 ```text
-Host=127.0.0.1;Port=54322;Database=postgres;Username=postgres;Password=postgres
+Host=127.0.0.1;Port=5432;Database=rankingcandidatos;Username=postgres;Password=postgres
 ```
 
 Também é possível sobrescrever via variável de ambiente:
@@ -71,18 +89,3 @@ Também é possível sobrescrever via variável de ambiente:
 ```text
 ConnectionStrings__DefaultConnection
 ```
-
-## Preparação para autenticação Supabase
-
-O projeto já está com configuração local do Supabase em `supabase/config.toml`, incluindo URLs de redirect para `localhost:3000`.
-
-Quando iniciar a integração de auth, obtenha URL e chaves locais com:
-
-```bash
-npm run supabase:status
-```
-
-Use:
-
-- `anon key` no frontend
-- `service_role key` apenas no backend
