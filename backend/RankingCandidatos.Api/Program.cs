@@ -39,7 +39,7 @@ api.MapGet("/ranking", async (AppDbContext db) =>
 {
     var candidatos = await db.Candidatos
         .AsNoTracking()
-        .OrderByDescending(c => c.Pontuacao)
+        .OrderByDescending(c => c.PontosPositivos - c.PontosNegativos)
         .ThenBy(c => c.Nome)
         .ToListAsync();
 
