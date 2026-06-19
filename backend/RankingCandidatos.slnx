@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/RankingCandidatos.Tests/">
+    <Project Path="RankingCandidatos.Tests/RankingCandidatos.IntegrationTests/RankingCandidatos.IntegrationTests.csproj" />
+    <Project Path="RankingCandidatos.Tests/RankingCandidatos.UnitTests/RankingCandidatos.UnitTests.csproj" />
+  </Folder>
+  <Project Path="RankingCandidatos.Api/RankingCandidatos.Api.csproj" />
+</Solution>
