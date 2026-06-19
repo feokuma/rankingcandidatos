@@ -64,6 +64,7 @@ Comandos disponíveis em `backend/build.cake`:
 
 - `dotnet cake --target=DevUp` -> sobe o container PostgreSQL local
 - `dotnet cake --target=DevUpApps` -> sobe PostgreSQL e inicia API + frontend em processos separados
+- `dotnet cake --target=DbMigrate` -> sobe PostgreSQL e aplica migrations pendentes
 - `dotnet cake --target=DevDown` -> remove o container PostgreSQL local mantendo o volume de dados
 - `dotnet cake --target=DevReset` -> remove container e volume, recriando o banco local limpo
 - `dotnet cake --target=DbLogs` -> mostra logs do container PostgreSQL
@@ -76,6 +77,7 @@ Execute esses comandos a partir do diretório `backend`.
 ## Banco de dados e EF Core
 
 - A API utiliza EF Core com PostgreSQL.
+- Ao iniciar, a API aplica automaticamente as migrations pendentes no banco configurado.
 - A conexão padrão de desenvolvimento está em:
 	- `backend/RankingCandidatos.Api/appsettings.Development.json`
 - String padrão local:
@@ -88,4 +90,20 @@ Também é possível sobrescrever via variável de ambiente:
 
 ```text
 ConnectionStrings__DefaultConnection
+```
+
+### Migrations
+
+Depois de alterar entidades ou mapeamentos do EF Core, crie uma nova migration a partir da raiz do projeto:
+
+```bash
+dotnet tool restore
+dotnet tool run dotnet-ef -- migrations add NomeDaMigration --project backend/RankingCandidatos.Api
+```
+
+Para aplicar manualmente sem iniciar a API:
+
+```bash
+cd backend
+dotnet cake --target=DbMigrate
 ```

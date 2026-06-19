@@ -12,6 +12,7 @@ var rootDir = MakeAbsolute(Directory(".."));
 var apiProject = backendDir.CombineWithFilePath("RankingCandidatos.Api/RankingCandidatos.Api.csproj");
 var frontendDir = rootDir.Combine("frontend/rankingcandidatos-web");
 var npmCommand = IsRunningOnWindows() ? "npm.cmd" : "npm";
+var dotnetEfArgs = $"tool run dotnet-ef -- database update --project \"{apiProject}\"";
 
 bool CommandSucceeds(string command, string arguments)
 {
@@ -74,6 +75,7 @@ Task("Default")
     Information("Targets disponíveis:");
     Information("- DevUp");
     Information("- DevUpApps");
+    Information("- DbMigrate");
     Information("- DevDown");
     Information("- DevReset");
     Information("- DbLogs");
@@ -87,6 +89,19 @@ Task("DevUp")
 {
     StartPostgres();
     ShowPostgresInfo();
+});
+
+Task("DbMigrate")
+    .IsDependentOn("DevUp")
+    .Does(() =>
+{
+    Information("");
+    Information("Aplicando migrations do banco...");
+    StartProcess("dotnet", new ProcessSettings
+    {
+        Arguments = dotnetEfArgs,
+        WorkingDirectory = rootDir
+    });
 });
 
 Task("DevUpApps")
