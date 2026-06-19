@@ -48,7 +48,7 @@ dotnet run --project backend/RankingCandidatos.Api
 5. Em outro terminal, a partir da raiz do projeto, suba o frontend:
 
 ```bash
-cd frontend/rankingcandidatos-web
+cd frontend
 npm install
 npm run dev
 ```

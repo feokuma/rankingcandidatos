@@ -10,7 +10,7 @@ const string PostgresVolume = "rankingcandidatos-postgres-data";
 var backendDir = MakeAbsolute(Directory("."));
 var rootDir = MakeAbsolute(Directory(".."));
 var apiProject = backendDir.CombineWithFilePath("RankingCandidatos.Api/RankingCandidatos.Api.csproj");
-var frontendDir = rootDir.Combine("frontend/rankingcandidatos-web");
+var frontendDir = rootDir.Combine("frontend");
 var npmCommand = IsRunningOnWindows() ? "npm.cmd" : "npm";
 var dotnetEfArgs = $"tool run dotnet-ef -- database update --project \"{apiProject}\"";
 
