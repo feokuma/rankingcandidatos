@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using RankingCandidatos.Api.Contracts;
 using RankingCandidatos.Api.Domain;
@@ -8,15 +9,15 @@ using Shouldly;
 
 namespace RankingCandidatos.IntegrationTests;
 
-public sealed class CandidatosEndpointsTests : IDisposable
+public sealed class CandidatosEndpointsTests : IClassFixture<ApiFactory>, IAsyncLifetime
 {
     private readonly ApiFactory _factory;
     private readonly HttpClient _client;
 
-    public CandidatosEndpointsTests()
+    public CandidatosEndpointsTests(ApiFactory factory)
     {
-        _factory = new ApiFactory();
-        _client = _factory.CreateClient();
+        _factory = factory;
+        _client = factory.CreateClient();
     }
 
     [Fact]
@@ -36,6 +37,13 @@ public sealed class CandidatosEndpointsTests : IDisposable
         candidato.Candidatura.ShouldBe("Vereadora");
         candidato.Partido.ShouldBe("ABC");
         candidato.Pontuacao.ShouldBe(0);
+
+        var candidatoNoBanco = await ObterCandidatoNoBancoAsync(candidato.Id);
+        candidatoNoBanco.ShouldNotBeNull();
+        candidatoNoBanco.Nome.ShouldBe("Ana Silva");
+        candidatoNoBanco.Cidade.ShouldBe("Recife");
+        candidatoNoBanco.Candidatura.ShouldBe("Vereadora");
+        candidatoNoBanco.Partido.ShouldBe("ABC");
     }
 
     [Fact]
@@ -46,12 +54,15 @@ public sealed class CandidatosEndpointsTests : IDisposable
         var response = await _client.PostAsJsonAsync("/api/candidatos", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+        var candidatosNoBanco = await ListarCandidatosNoBancoAsync();
+        candidatosNoBanco.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task GetCandidato_DeveRetornarCandidatoPorId()
     {
-        var candidato = await CriarCandidatoAsync("Ana Silva", "Recife", "Vereadora", "ABC");
+        var candidato = await AdicionarCandidatoAsync("Ana Silva", "Recife", "Vereadora", "ABC");
 
         var response = await _client.GetAsync($"/api/candidatos/{candidato.Id}");
 
@@ -87,7 +98,7 @@ public sealed class CandidatosEndpointsTests : IDisposable
     [Fact]
     public async Task PostAvaliacao_DeveRegistrarAvaliacaoPositiva()
     {
-        var candidato = await CriarCandidatoAsync("Ana Silva", "Recife", "Vereadora", null);
+        var candidato = await AdicionarCandidatoAsync("Ana Silva");
 
         var response = await _client.PostAsJsonAsync($"/api/candidatos/{candidato.Id}/avaliacoes", new RegistrarAvaliacaoRequest("positiva"));
 
@@ -98,12 +109,17 @@ public sealed class CandidatosEndpointsTests : IDisposable
         atualizado.PontosPositivos.ShouldBe(1);
         atualizado.PontosNegativos.ShouldBe(0);
         atualizado.Pontuacao.ShouldBe(1);
+
+        var candidatoNoBanco = await ObterCandidatoNoBancoAsync(candidato.Id);
+        candidatoNoBanco.ShouldNotBeNull();
+        candidatoNoBanco.PontosPositivos.ShouldBe(1);
+        candidatoNoBanco.PontosNegativos.ShouldBe(0);
     }
 
     [Fact]
     public async Task PostAvaliacao_DeveRegistrarAvaliacaoNegativa()
     {
-        var candidato = await CriarCandidatoAsync("Ana Silva", "Recife", "Vereadora", null);
+        var candidato = await AdicionarCandidatoAsync("Ana Silva");
 
         var response = await _client.PostAsJsonAsync($"/api/candidatos/{candidato.Id}/avaliacoes", new RegistrarAvaliacaoRequest("negativa"));
 
@@ -114,16 +130,26 @@ public sealed class CandidatosEndpointsTests : IDisposable
         atualizado.PontosPositivos.ShouldBe(0);
         atualizado.PontosNegativos.ShouldBe(1);
         atualizado.Pontuacao.ShouldBe(-1);
+
+        var candidatoNoBanco = await ObterCandidatoNoBancoAsync(candidato.Id);
+        candidatoNoBanco.ShouldNotBeNull();
+        candidatoNoBanco.PontosPositivos.ShouldBe(0);
+        candidatoNoBanco.PontosNegativos.ShouldBe(1);
     }
 
     [Fact]
     public async Task PostAvaliacao_DeveRetornarBadRequestQuandoTipoForInvalido()
     {
-        var candidato = await CriarCandidatoAsync("Ana Silva", "Recife", "Vereadora", null);
+        var candidato = await AdicionarCandidatoAsync("Ana Silva");
 
         var response = await _client.PostAsJsonAsync($"/api/candidatos/{candidato.Id}/avaliacoes", new RegistrarAvaliacaoRequest("neutra"));
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+        var candidatoNoBanco = await ObterCandidatoNoBancoAsync(candidato.Id);
+        candidatoNoBanco.ShouldNotBeNull();
+        candidatoNoBanco.PontosPositivos.ShouldBe(0);
+        candidatoNoBanco.PontosNegativos.ShouldBe(0);
     }
 
     [Fact]
@@ -134,39 +160,73 @@ public sealed class CandidatosEndpointsTests : IDisposable
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
-    private async Task<CandidatoResponse> CriarCandidatoAsync(string nome, string cidade, string candidatura, string? partido)
-    {
-        var response = await _client.PostAsJsonAsync("/api/candidatos", new CriarCandidatoRequest(nome, cidade, candidatura, partido));
-        response.EnsureSuccessStatusCode();
-
-        var candidato = await response.Content.ReadFromJsonAsync<CandidatoResponse>();
-        candidato.ShouldNotBeNull();
-
-        return candidato;
-    }
-
-    private async Task AdicionarCandidatoAsync(string nome, int pontosPositivos, int pontosNegativos)
+    private async Task<Candidato> AdicionarCandidatoAsync(
+        string nome,
+        string cidade = "Recife",
+        string candidatura = "Vereadora",
+        string? partido = null,
+        int pontosPositivos = 0,
+        int pontosNegativos = 0)
     {
         await using var scope = _factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        db.Candidatos.Add(new Candidato
+        var candidato = new Candidato
         {
             Id = Guid.NewGuid(),
             Nome = nome,
-            Cidade = "Recife",
-            Candidatura = "Vereadora",
-            Partido = string.Empty,
+            Cidade = cidade,
+            Candidatura = candidatura,
+            Partido = partido ?? string.Empty,
             PontosPositivos = pontosPositivos,
             PontosNegativos = pontosNegativos
-        });
+        };
+
+        db.Candidatos.Add(candidato);
 
         await db.SaveChangesAsync();
+
+        return candidato;
     }
 
-    public void Dispose()
+    private async Task<Candidato?> ObterCandidatoNoBancoAsync(Guid id)
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        return await db.Candidatos
+            .AsNoTracking()
+            .SingleOrDefaultAsync(candidato => candidato.Id == id);
+    }
+
+    private async Task<Candidato[]> ListarCandidatosNoBancoAsync()
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        return await db.Candidatos
+            .AsNoTracking()
+            .ToArrayAsync();
+    }
+
+    public async Task InitializeAsync()
+    {
+        await LimparBancoAsync();
+    }
+
+    public Task DisposeAsync()
     {
         _client.Dispose();
-        _factory.Dispose();
+
+        return Task.CompletedTask;
+    }
+
+    private async Task LimparBancoAsync()
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        db.Candidatos.RemoveRange(db.Candidatos);
+        await db.SaveChangesAsync();
     }
 }
