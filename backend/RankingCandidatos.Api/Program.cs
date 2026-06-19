@@ -5,8 +5,13 @@ using RankingCandidatos.Api.Infra.Persistence;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("frontend", policy =>
@@ -19,8 +24,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-await using (var scope = app.Services.CreateAsyncScope())
+if (!app.Environment.IsEnvironment("Testing"))
 {
+    await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
 }
@@ -35,3 +41,5 @@ app.UseCors("frontend");
 app.MapCandidatosEndpoints();
 
 app.Run();
+
+public partial class Program;
