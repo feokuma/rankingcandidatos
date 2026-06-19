@@ -1,4 +1,5 @@
 using RankingCandidatos.Api.Domain;
+using Shouldly;
 
 namespace RankingCandidatos.UnitTests.Domain;
 
@@ -13,6 +14,6 @@ public sealed class CandidatoTests
             PontosNegativos = 3
         };
 
-        Assert.Equal(4, candidato.Pontuacao);
+        candidato.Pontuacao.ShouldBe(4);
     }
 }

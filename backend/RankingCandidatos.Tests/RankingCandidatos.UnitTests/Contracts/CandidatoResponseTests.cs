@@ -1,5 +1,6 @@
 using RankingCandidatos.Api.Contracts;
 using RankingCandidatos.Api.Domain;
+using Shouldly;
 
 namespace RankingCandidatos.UnitTests.Contracts;
 
@@ -21,13 +22,13 @@ public sealed class CandidatoResponseTests
 
         var response = CandidatoResponse.From(candidato);
 
-        Assert.Equal(candidato.Id, response.Id);
-        Assert.Equal("Ana Silva", response.Nome);
-        Assert.Equal("Recife", response.Cidade);
-        Assert.Equal("ABC", response.Partido);
-        Assert.Equal("Vereadora", response.Candidatura);
-        Assert.Equal(5, response.PontosPositivos);
-        Assert.Equal(2, response.PontosNegativos);
-        Assert.Equal(3, response.Pontuacao);
+        response.Id.ShouldBe(candidato.Id);
+        response.Nome.ShouldBe("Ana Silva");
+        response.Cidade.ShouldBe("Recife");
+        response.Partido.ShouldBe("ABC");
+        response.Candidatura.ShouldBe("Vereadora");
+        response.PontosPositivos.ShouldBe(5);
+        response.PontosNegativos.ShouldBe(2);
+        response.Pontuacao.ShouldBe(3);
     }
 }

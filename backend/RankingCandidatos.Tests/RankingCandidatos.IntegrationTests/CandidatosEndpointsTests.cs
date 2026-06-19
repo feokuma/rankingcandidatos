@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using RankingCandidatos.Api.Contracts;
 using RankingCandidatos.Api.Domain;
 using RankingCandidatos.Api.Infra.Persistence;
+using Shouldly;
 
 namespace RankingCandidatos.IntegrationTests;
 
@@ -25,16 +26,16 @@ public sealed class CandidatosEndpointsTests : IDisposable
 
         var response = await _client.PostAsJsonAsync("/api/candidatos", request);
 
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         var candidato = await response.Content.ReadFromJsonAsync<CandidatoResponse>();
-        Assert.NotNull(candidato);
-        Assert.NotEqual(Guid.Empty, candidato.Id);
-        Assert.Equal("Ana Silva", candidato.Nome);
-        Assert.Equal("Recife", candidato.Cidade);
-        Assert.Equal("Vereadora", candidato.Candidatura);
-        Assert.Equal("ABC", candidato.Partido);
-        Assert.Equal(0, candidato.Pontuacao);
+        candidato.ShouldNotBeNull();
+        candidato.Id.ShouldNotBe(Guid.Empty);
+        candidato.Nome.ShouldBe("Ana Silva");
+        candidato.Cidade.ShouldBe("Recife");
+        candidato.Candidatura.ShouldBe("Vereadora");
+        candidato.Partido.ShouldBe("ABC");
+        candidato.Pontuacao.ShouldBe(0);
     }
 
     [Fact]
@@ -44,7 +45,7 @@ public sealed class CandidatosEndpointsTests : IDisposable
 
         var response = await _client.PostAsJsonAsync("/api/candidatos", request);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -57,9 +58,9 @@ public sealed class CandidatosEndpointsTests : IDisposable
         response.EnsureSuccessStatusCode();
 
         var encontrado = await response.Content.ReadFromJsonAsync<CandidatoResponse>();
-        Assert.NotNull(encontrado);
-        Assert.Equal(candidato.Id, encontrado.Id);
-        Assert.Equal("Ana Silva", encontrado.Nome);
+        encontrado.ShouldNotBeNull();
+        encontrado.Id.ShouldBe(candidato.Id);
+        encontrado.Nome.ShouldBe("Ana Silva");
     }
 
     [Fact]
@@ -67,7 +68,7 @@ public sealed class CandidatosEndpointsTests : IDisposable
     {
         var response = await _client.GetAsync($"/api/candidatos/{Guid.NewGuid()}");
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     [Fact]
@@ -79,12 +80,8 @@ public sealed class CandidatosEndpointsTests : IDisposable
 
         var ranking = await _client.GetFromJsonAsync<CandidatoResponse[]>("/api/candidatos/ranking");
 
-        Assert.NotNull(ranking);
-        Assert.Collection(
-            ranking,
-            candidato => Assert.Equal("Bruno", candidato.Nome),
-            candidato => Assert.Equal("Ana", candidato.Nome),
-            candidato => Assert.Equal("Carla", candidato.Nome));
+        ranking.ShouldNotBeNull();
+        ranking.Select(candidato => candidato.Nome).ShouldBe(["Bruno", "Ana", "Carla"]);
     }
 
     [Fact]
@@ -97,10 +94,10 @@ public sealed class CandidatosEndpointsTests : IDisposable
         response.EnsureSuccessStatusCode();
 
         var atualizado = await response.Content.ReadFromJsonAsync<CandidatoResponse>();
-        Assert.NotNull(atualizado);
-        Assert.Equal(1, atualizado.PontosPositivos);
-        Assert.Equal(0, atualizado.PontosNegativos);
-        Assert.Equal(1, atualizado.Pontuacao);
+        atualizado.ShouldNotBeNull();
+        atualizado.PontosPositivos.ShouldBe(1);
+        atualizado.PontosNegativos.ShouldBe(0);
+        atualizado.Pontuacao.ShouldBe(1);
     }
 
     [Fact]
@@ -113,10 +110,10 @@ public sealed class CandidatosEndpointsTests : IDisposable
         response.EnsureSuccessStatusCode();
 
         var atualizado = await response.Content.ReadFromJsonAsync<CandidatoResponse>();
-        Assert.NotNull(atualizado);
-        Assert.Equal(0, atualizado.PontosPositivos);
-        Assert.Equal(1, atualizado.PontosNegativos);
-        Assert.Equal(-1, atualizado.Pontuacao);
+        atualizado.ShouldNotBeNull();
+        atualizado.PontosPositivos.ShouldBe(0);
+        atualizado.PontosNegativos.ShouldBe(1);
+        atualizado.Pontuacao.ShouldBe(-1);
     }
 
     [Fact]
@@ -126,7 +123,7 @@ public sealed class CandidatosEndpointsTests : IDisposable
 
         var response = await _client.PostAsJsonAsync($"/api/candidatos/{candidato.Id}/avaliacoes", new RegistrarAvaliacaoRequest("neutra"));
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -134,7 +131,7 @@ public sealed class CandidatosEndpointsTests : IDisposable
     {
         var response = await _client.PostAsJsonAsync($"/api/candidatos/{Guid.NewGuid()}/avaliacoes", new RegistrarAvaliacaoRequest("positiva"));
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     private async Task<CandidatoResponse> CriarCandidatoAsync(string nome, string cidade, string candidatura, string? partido)
@@ -143,7 +140,7 @@ public sealed class CandidatosEndpointsTests : IDisposable
         response.EnsureSuccessStatusCode();
 
         var candidato = await response.Content.ReadFromJsonAsync<CandidatoResponse>();
-        Assert.NotNull(candidato);
+        candidato.ShouldNotBeNull();
 
         return candidato;
     }
