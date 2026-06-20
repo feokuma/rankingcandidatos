@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RankingCandidatos.Api.Endpoints;
 using RankingCandidatos.Api.Infra.Persistence;
+using RankingCandidatos.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,20 @@ if (!builder.Environment.IsEnvironment("Testing"))
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 }
+
+builder.Services
+    .AddOptions<CandidatosExternosOptions>()
+    .Bind(builder.Configuration.GetSection(CandidatosExternosOptions.SectionName));
+
+builder.Services.AddHttpClient<CandidatosExternosService>((serviceProvider, httpClient) =>
+{
+    var options = serviceProvider
+        .GetRequiredService<Microsoft.Extensions.Options.IOptions<CandidatosExternosOptions>>()
+        .Value;
+
+    httpClient.BaseAddress = new Uri(options.BaseUrl);
+    httpClient.Timeout = TimeSpan.FromSeconds(10);
+});
 
 builder.Services.AddCors(options =>
 {
