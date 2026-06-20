@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RankingCandidatos.Api.Contracts;
 using RankingCandidatos.Api.Domain;
 using RankingCandidatos.Api.Infra.Persistence;
+using RankingCandidatos.Api.Services;
 
 namespace RankingCandidatos.Api.Endpoints;
 
@@ -20,6 +21,23 @@ public static class CandidatosEndpoints
                 .ToListAsync();
 
             return candidatos.Select(CandidatoResponse.From);
+        });
+
+        api.MapGet("/externos/presidencia/2022", async Task<IResult> (CandidatosExternosService service) =>
+        {
+            try
+            {
+                var candidatos = await service.ObterPresidenciais2022Async();
+                return Results.Ok(candidatos);
+            }
+            catch (HttpRequestException)
+            {
+                return Results.Json(new { erro = "Nao foi possivel consultar os candidatos externos no momento." }, statusCode: StatusCodes.Status502BadGateway);
+            }
+            catch (TaskCanceledException)
+            {
+                return Results.Json(new { erro = "Nao foi possivel consultar os candidatos externos no momento." }, statusCode: StatusCodes.Status502BadGateway);
+            }
         });
 
         api.MapGet("/{id:guid}", async (Guid id, AppDbContext db) =>

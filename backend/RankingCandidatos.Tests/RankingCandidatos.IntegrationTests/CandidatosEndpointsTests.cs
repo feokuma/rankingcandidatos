@@ -1,10 +1,14 @@
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using RankingCandidatos.Api.Contracts;
 using RankingCandidatos.Api.Domain;
 using RankingCandidatos.Api.Infra.Persistence;
+using RankingCandidatos.Api.Services;
 using Shouldly;
 
 namespace RankingCandidatos.IntegrationTests;
@@ -160,6 +164,63 @@ public sealed class CandidatosEndpointsTests : IClassFixture<ApiFactory>, IAsync
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
+        [Fact]
+        public async Task GetCandidatosExternosPresidencia2022_DeveRetornarListaMapeada()
+        {
+                const string payload = """
+                {
+                    "candidatos": [
+                        {
+                            "id": 1001,
+                            "nomeUrna": "CANDIDATO A",
+                            "numero": 10,
+                            "fotoUrl": "https://example.org/a.jpg",
+                            "partido": { "sigla": "AAA" }
+                        },
+                        {
+                            "id": 1002,
+                            "nomeUrna": "CANDIDATO B",
+                            "numero": 22,
+                            "fotoUrl": null,
+                            "partido": { "sigla": "BBB" }
+                        }
+                    ]
+                }
+                """;
+
+                using var client = CreateClientComRespostaExterna(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                        Content = new StringContent(payload, Encoding.UTF8, "application/json")
+                });
+
+                var response = await client.GetAsync("/api/candidatos/externos/presidencia/2022");
+
+                response.EnsureSuccessStatusCode();
+
+                var candidatos = await response.Content.ReadFromJsonAsync<CandidatoExternoResponse[]>();
+                candidatos.ShouldNotBeNull();
+                candidatos.Length.ShouldBe(2);
+                candidatos[0].IdExterno.ShouldBe(1001);
+                candidatos[0].Nome.ShouldBe("CANDIDATO A");
+                candidatos[0].Partido.ShouldBe("AAA");
+                candidatos[0].Numero.ShouldBe(10);
+                candidatos[0].FotoUrl.ShouldBe("https://example.org/a.jpg");
+        }
+
+        [Fact]
+        public async Task GetCandidatosExternosPresidencia2022_DeveRetornarBadGatewayQuandoProvedorFalhar()
+        {
+                using var client = CreateClientComRespostaExterna(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+
+                var response = await client.GetAsync("/api/candidatos/externos/presidencia/2022");
+
+                response.StatusCode.ShouldBe(HttpStatusCode.BadGateway);
+
+                var erro = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+                erro.ShouldNotBeNull();
+                erro.ShouldContainKey("erro");
+        }
+
     private async Task<Candidato> AdicionarCandidatoAsync(
         string nome,
         string cidade = "Recife",
@@ -228,5 +289,46 @@ public sealed class CandidatosEndpointsTests : IClassFixture<ApiFactory>, IAsync
 
         db.Candidatos.RemoveRange(db.Candidatos);
         await db.SaveChangesAsync();
+    }
+
+    private HttpClient CreateClientComRespostaExterna(HttpResponseMessage response)
+    {
+        return _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<CandidatosExternosService>();
+                services.AddSingleton(_ =>
+                {
+                    var httpClient = new HttpClient(new StubHttpMessageHandler(_ => response))
+                    {
+                        BaseAddress = new Uri("https://divulgacandcontas.tse.jus.br")
+                    };
+
+                    var options = Microsoft.Extensions.Options.Options.Create(new CandidatosExternosOptions
+                    {
+                        BaseUrl = "https://divulgacandcontas.tse.jus.br",
+                        Presidenciais2022Path = "/divulga/rest/v1/candidatura/listar/2022/BR/2040602022/1/candidatos"
+                    });
+
+                    return new CandidatosExternosService(httpClient, options);
+                });
+            });
+        }).CreateClient();
+    }
+
+    private sealed class StubHttpMessageHandler : HttpMessageHandler
+    {
+        private readonly Func<HttpRequestMessage, HttpResponseMessage> _handler;
+
+        public StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler)
+        {
+            _handler = handler;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_handler(request));
+        }
     }
 }
