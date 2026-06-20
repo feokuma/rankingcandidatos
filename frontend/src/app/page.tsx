@@ -13,16 +13,30 @@ type Candidato = {
   pontuacao: number;
 };
 
+type CandidatoExterno = {
+  idExterno: number;
+  nome: string;
+  partido: string;
+  numero: number;
+  fotoUrl: string | null;
+};
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 
 export default function Home() {
   const [candidatos, setCandidatos] = useState<Candidato[]>([]);
-  const [nome, setNome] = useState("");
+  const [candidatosPresidencia2022, setCandidatosPresidencia2022] = useState<CandidatoExterno[]>([]);
+  const [candidatoSelecionadoId, setCandidatoSelecionadoId] = useState("");
   const [cidade, setCidade] = useState("");
   const [partido, setPartido] = useState("");
   const [candidatura, setCandidatura] = useState("Prefeito");
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [carregandoPresidencia, setCarregandoPresidencia] = useState(true);
+
+  const candidatoSelecionado = candidatosPresidencia2022.find(
+    (candidato) => candidato.idExterno.toString() === candidatoSelecionadoId,
+  );
 
   async function carregarRanking() {
     setErro(null);
@@ -45,13 +59,43 @@ export default function Home() {
     }
   }
 
+  async function carregarPresidenciais2022() {
+    setErro(null);
+
+    try {
+      const response = await fetch(`${API_URL}/api/candidatos/externos/presidencia/2022`, {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { erro?: string };
+        throw new Error(data.erro ?? "Não foi possível carregar os candidatos da presidência de 2022.");
+      }
+
+      const data = (await response.json()) as CandidatoExterno[];
+      setCandidatosPresidencia2022(data);
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : "Erro inesperado.");
+    } finally {
+      setCarregandoPresidencia(false);
+    }
+  }
+
   useEffect(() => {
-    carregarRanking();
+    queueMicrotask(() => {
+      void carregarRanking();
+      void carregarPresidenciais2022();
+    });
   }, []);
 
   async function cadastrarCandidato(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErro(null);
+
+    if (!candidatoSelecionado) {
+      setErro("Selecione um candidato à presidência de 2022 antes de cadastrar.");
+      return;
+    }
 
     try {
       const response = await fetch(`${API_URL}/api/candidatos`, {
@@ -60,9 +104,9 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          nome,
+          nome: candidatoSelecionado.nome,
           cidade,
-          partido,
+          partido: partido.trim() || candidatoSelecionado.partido,
           candidatura,
         }),
       });
@@ -72,7 +116,7 @@ export default function Home() {
         throw new Error(data.erro ?? "Não foi possível cadastrar o candidato.");
       }
 
-      setNome("");
+      setCandidatoSelecionadoId("");
       setCidade("");
       setPartido("");
       setCandidatura("Prefeito");
@@ -116,16 +160,75 @@ export default function Home() {
       </header>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-semibold text-slate-900">Presidência 2022</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Selecione um candidato da lista oficial para usar no cadastro.
+        </p>
+
+        {carregandoPresidencia ? (
+          <p className="mt-4 text-slate-600">Carregando candidatos da presidência de 2022...</p>
+        ) : candidatosPresidencia2022.length === 0 ? (
+          <p className="mt-4 text-slate-600">Nenhum candidato externo encontrado no momento.</p>
+        ) : (
+          <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {candidatosPresidencia2022.map((candidato) => {
+              const selecionado = candidato.idExterno.toString() === candidatoSelecionadoId;
+
+              return (
+                <li key={candidato.idExterno}>
+                  <button
+                    className={`w-full rounded-lg border px-3 py-2 text-left text-sm ${
+                      selecionado
+                        ? "border-slate-900 bg-slate-900 text-white"
+                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                    }`}
+                    type="button"
+                    onClick={() => {
+                      setCandidatoSelecionadoId(candidato.idExterno.toString());
+                      setPartido(candidato.partido);
+                      setCandidatura("Presidente");
+                    }}
+                  >
+                    <p className="font-semibold">{candidato.nome}</p>
+                    <p className="text-xs opacity-90">Nº {candidato.numero}{candidato.partido ? ` • ${candidato.partido}` : ""}</p>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">Novo candidato</h2>
         <form className="mt-4 grid gap-4 sm:grid-cols-2" onSubmit={cadastrarCandidato}>
           <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-            Nome
-            <input
+            Candidato selecionado
+            <select
               className="rounded-lg border border-slate-300 px-3 py-2"
-              value={nome}
-              onChange={(event) => setNome(event.target.value)}
+              value={candidatoSelecionadoId}
+              onChange={(event) => {
+                const id = event.target.value;
+                setCandidatoSelecionadoId(id);
+
+                const candidato = candidatosPresidencia2022.find(
+                  (item) => item.idExterno.toString() === id,
+                );
+
+                if (candidato) {
+                  setPartido(candidato.partido);
+                  setCandidatura("Presidente");
+                }
+              }}
               required
-            />
+            >
+              <option value="">Selecione...</option>
+              {candidatosPresidencia2022.map((candidato) => (
+                <option key={candidato.idExterno} value={candidato.idExterno.toString()}>
+                  {candidato.nome} ({candidato.numero})
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
